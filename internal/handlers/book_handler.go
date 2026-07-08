@@ -1,49 +1,32 @@
 package handlers // Пакет с HTTP-обработчиками
 
 import (
-	"net/http" // HTTP-статусы, например 200 OK
+	"net/http" // HTTP-статусы
 
-	"github.com/Fledik/book-api/internal/models" // Модель книги
-	"github.com/gin-gonic/gin"                  // Gin-контекст для обработки запросов
+	"github.com/Fledik/book-api/internal/repository" // Репозиторий книг
+	"github.com/gin-gonic/gin"                      // Gin-контекст
 )
 
-// BookHandler хранит методы для работы с книгами
-type BookHandler struct{}
-
-// NewBookHandler создаёт новый обработчик книг
-func NewBookHandler() *BookHandler {
-	return &BookHandler{}
+// BookHandler хранит зависимости для ручек книг
+type BookHandler struct {
+	repo *repository.BookRepository // Репозиторий для работы с книгами
 }
 
-// GetBooks возвращает список книг
+// NewBookHandler создаёт новый обработчик книг
+func NewBookHandler(repo *repository.BookRepository) *BookHandler {
+	return &BookHandler{
+		repo: repo,
+	}
+}
+
+// GetBooks возвращает список книг из SQLite
 func (h *BookHandler) GetBooks(c *gin.Context) {
-	books := []models.Book{ // Временные данные, позже заменим на SQLite
-		{
-			ID:          1,
-			ISBN:        "9785171183661",
-			Title:       "Мастер и Маргарита",
-			Author:      "Михаил Булгаков",
-			Description: "Роман о добре, зле, любви и свободе.",
-			Publisher:   "АСТ",
-			Year:        1967,
-			Genre:       "Роман",
-			Language:    "ru",
-			Pages:       480,
-			Rating:      4.8,
-		},
-		{
-			ID:          2,
-			ISBN:        "9785389177771",
-			Title:       "1984",
-			Author:      "Джордж Оруэлл",
-			Description: "Антиутопия о тоталитарном обществе.",
-			Publisher:   "Азбука",
-			Year:        1949,
-			Genre:       "Антиутопия",
-			Language:    "ru",
-			Pages:       320,
-			Rating:      4.7,
-		},
+	books, err := h.repo.GetAll() // Получаем книги из базы данных
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{ // Если ошибка БД, отдаём 500
+			"error": "failed to get books",
+		})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{ // Возвращаем JSON-ответ

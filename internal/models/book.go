@@ -13,4 +13,6 @@ type Book struct {
 	Language    string  `json:"language"`    // Язык книги
 	Pages       int     `json:"pages"`       // Количество страниц
 	Rating      float64 `json:"rating"`      // Рейтинг книги
+	CreatedAt   string  `json:"created_at"`  // Дата создания записи
+	UpdatedAt   string  `json:"updated_at"`  // Дата последнего обновления
 }
