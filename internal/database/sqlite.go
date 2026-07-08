@@ -1,36 +1,39 @@
-package database // Пакет для работы с базой данных
+package database // Работа с базой данных
 
 import (
-	"database/sql" // Стандартный пакет Go для работы с SQL-базами
-	"fmt"          // Нужен для форматирования ошибок
-	"os"           // Нужен для создания папки data
+	"database/sql" // Стандартный пакет для SQL
+	"fmt"          // Форматирование ошибок
+	"os"           // Создание папок
+	"path/filepath" // Работа с путями файлов
 
-	_ "modernc.org/sqlite" // SQLite-драйвер, подключается через blank import
+	_ "modernc.org/sqlite" // SQLite-драйвер
 )
 
-// InitSQLite открывает базу данных и создаёт таблицу books
+// InitSQLite открывает SQLite и подготавливает таблицу
 func InitSQLite(dbPath string) (*sql.DB, error) {
-	err := os.MkdirAll("data", os.ModePerm) // Создаём папку data, если её нет
+	dataDir := filepath.Dir(dbPath) // Получаем папку, где будет лежать база
+
+	err := os.MkdirAll(dataDir, os.ModePerm) // Создаём папку data, если её нет
 	if err != nil {
 		return nil, fmt.Errorf("failed to create data directory: %w", err)
 	}
 
-	db, err := sql.Open("sqlite", dbPath) // Открываем SQLite-базу по пути
+	db, err := sql.Open("sqlite", dbPath) // Открываем SQLite-файл
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
-	err = createBooksTable(db) // Создаём таблицу books, если её ещё нет
+	err = createBooksTable(db) // Создаём таблицу books
 	if err != nil {
 		return nil, err
 	}
 
-	err = seedBooks(db) // Добавляем тестовые книги, если таблица пустая
+	err = seedBooks(db) // Добавляем стартовые книги
 	if err != nil {
 		return nil, err
 	}
 
-	return db, nil // Возвращаем готовое подключение к базе
+	return db, nil // Возвращаем подключение к базе
 }
 
 // createBooksTable создаёт таблицу книг
@@ -52,7 +55,7 @@ func createBooksTable(db *sql.DB) error {
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);`
 
-	_, err := db.Exec(query) // Выполняем SQL-запрос создания таблицы
+	_, err := db.Exec(query) // Выполняем SQL
 	if err != nil {
 		return fmt.Errorf("failed to create books table: %w", err)
 	}
@@ -60,9 +63,9 @@ func createBooksTable(db *sql.DB) error {
 	return nil
 }
 
-// seedBooks добавляет стартовые книги, чтобы API сразу что-то возвращал
+// seedBooks добавляет тестовые книги, если база пустая
 func seedBooks(db *sql.DB) error {
-	var count int // Сюда запишем количество книг в таблице
+	var count int
 
 	err := db.QueryRow("SELECT COUNT(*) FROM books").Scan(&count) // Считаем книги
 	if err != nil {
@@ -70,14 +73,13 @@ func seedBooks(db *sql.DB) error {
 	}
 
 	if count > 0 {
-		return nil // Если книги уже есть, повторно ничего не добавляем
+		return nil // Если книги уже есть, ничего не добавляем
 	}
 
 	query := `
-	INSERT INTO books 
+	INSERT OR IGNORE INTO books
 	(isbn, title, author, description, publisher, year, genre, language, pages, rating)
-	VALUES 
-	(?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`
 
 	_, err = db.Exec(
 		query,

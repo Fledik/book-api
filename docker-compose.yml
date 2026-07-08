@@ -1,0 +1,9 @@
+services:
+  book-api:
+    build: . # Собираем образ из текущей папки
+    container_name: book-api # Имя контейнера
+    ports:
+      - "8080:8080" # Порт ПК -> порт контейнера
+    volumes:
+      - ./data:/app/data # Маунт папки для сохранения SQLite базы
+    restart: unless-stopped
